@@ -1,15 +1,22 @@
+from fastapi import FastAPI
 from stock_data import get_stock_data
 
-# ask user for stock ticker
-ticker = input("Enter a stock ticker: ")
+app = FastAPI()
 
-# get stock information
-stock_data = get_stock_data(ticker)
+# creates webpage
+@app.get("/")
+def home():
+    return {
+        "message": "Welcome to InvestStart"
+    }
 
-# show results
-print("\nCompany:", stock_data["name"])
-print("Current Price:", stock_data["price"])
-print("Market Cap:", stock_data["market_cap"])
+# calls my function to get stock info
+@app.get("/stock/{ticker}")
+def stock(ticker: str):
+    data = get_stock_data(ticker)
 
-print("\nHistorical Data:")
-print(stock_data["history"].head())
+    return {
+        "name": data["name"],
+        "price": data["price"],
+        "market_cap": data["market_cap"]
+    }
