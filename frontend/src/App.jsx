@@ -10,6 +10,7 @@ function App() {
     );
 
     const data = await response.json();
+
     setStock(data);
   }
 
@@ -18,14 +19,16 @@ function App() {
       <h1>InvestStart</h1>
 
       <input
+        type="text"
+        placeholder="Enter ticker (ex: AAPL)"
         value={ticker}
         onChange={(e) => setTicker(e.target.value)}
-        placeholder="Enter ticker"
       />
 
       <button onClick={searchStock}>
         Search
       </button>
+
 
       {stock && (
         <div>
