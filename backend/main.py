@@ -23,7 +23,14 @@ def stock(ticker: str):
     data = get_stock_data(ticker)
 
     return {
+        "ticker": data["ticker"],
         "name": data["name"],
         "price": data["price"],
-        "market_cap": data["market_cap"]
+        "market_cap": data["market_cap"],
+        "sector": data["sector"],
+        "industry": data["industry"],
+        "fifty_two_week_high": data["fifty_two_week_high"],
+        "fifty_two_week_low": data["fifty_two_week_low"],
+        "pe_ratio": data["pe_ratio"],
+        "dividend_yield": data["dividend_yield"]
     }

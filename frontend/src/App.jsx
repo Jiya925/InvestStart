@@ -1,4 +1,7 @@
 import { useState } from "react";
+import "./App.css";
+import SearchBar from "./components/SearchBar";
+import StockCard from "./components/StockCard";
 
 function App() {
   const [ticker, setTicker] = useState("");
@@ -15,28 +18,17 @@ function App() {
   }
 
   return (
-    <div>
+    <div className="container">
       <h1>InvestStart</h1>
 
-      <input
-        type="text"
-        placeholder="Enter ticker (ex: AAPL)"
-        value={ticker}
-        onChange={(e) => setTicker(e.target.value)}
+      <SearchBar
+        ticker={ticker}
+        setTicker={setTicker}
+        searchStock={searchStock}
       />
 
-      <button onClick={searchStock}>
-        Search
-      </button>
 
-
-      {stock && (
-        <div>
-          <h2>{stock.name}</h2>
-          <p>Price: ${stock.price}</p>
-          <p>Market Cap: {stock.market_cap}</p>
-        </div>
-      )}
+      {stock && <StockCard stock={stock} />}
     </div>
   );
 }
