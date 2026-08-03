@@ -1,3 +1,5 @@
+import Metric from "./Metric";
+
 function StockCard({ stock }) {
   return (
     <div className="stock-card">
@@ -5,41 +7,49 @@ function StockCard({ stock }) {
         {stock.name} ({stock.ticker})
       </h2>
 
-      <p>
-        <strong>Current Price:</strong> ${stock.price}
-      </p>
+      <Metric
+        label="Current Price"
+        value={`$${stock.price}`}
+      />
 
-      <p>
-        <strong>Market Cap:</strong> $
-        {(stock.market_cap / 1000000000).toFixed(2)} Billion
-      </p>
+      <Metric
+        label="Market Cap"
+        value={`$${(stock.market_cap / 1000000000).toFixed(2)} Billion`}
+      />
 
-      <p>
-        <strong>Sector:</strong> {stock.sector}
-      </p>
+      <Metric
+        label="Sector"
+        value={stock.sector}
+      />
 
-      <p>
-        <strong>Industry:</strong> {stock.industry}
-      </p>
+      <Metric
+        label="Industry"
+        value={stock.industry}
+      />
 
-      <p>
-        <strong>52 Week High:</strong> ${stock.fifty_two_week_high}
-      </p>
+      <Metric
+        label="52 Week High"
+        value={`$${stock.fifty_two_week_high}`}
+      />
 
-      <p>
-        <strong>52 Week Low:</strong> ${stock.fifty_two_week_low}
-      </p>
+      <Metric
+        label="52 Week Low"
+        value={`$${stock.fifty_two_week_low}`}
+      />
 
-      <p>
-        <strong>P/E Ratio:</strong> {stock.pe_ratio}
-      </p>
+      <Metric
+        label="P/E Ratio"
+        value={stock.pe_ratio}
+      />
 
-      <p>
-        <strong>Dividend Yield:</strong>{" "}
-        {stock.dividend_yield
-          ? (stock.dividend_yield * 100).toFixed(2) + "%"
-          : "N/A"}
-      </p>
+      <Metric
+        label="Dividend Yield"
+        value={
+          stock.dividend_yield
+            ? `${(stock.dividend_yield * 100).toFixed(2)}%`
+            : "N/A"
+        }
+      />
     </div>
   );
 }
