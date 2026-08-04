@@ -21,6 +21,10 @@ def home():
 @app.get("/stock/{ticker}")
 def stock(ticker: str):
     data = get_stock_data(ticker)
+    history = data["history"]
+
+    dates = history.index.strftime("%Y-%m-%d").tolist()
+    prices = history["Close"].tolist()
 
     return {
         "ticker": data["ticker"],
@@ -32,5 +36,7 @@ def stock(ticker: str):
         "fifty_two_week_high": data["fifty_two_week_high"],
         "fifty_two_week_low": data["fifty_two_week_low"],
         "pe_ratio": data["pe_ratio"],
-        "dividend_yield": data["dividend_yield"]
+        "dividend_yield": data["dividend_yield"],
+        "dates": dates,
+        "prices": prices
     }

@@ -1,8 +1,9 @@
 function Metric({ label, value }) {
   return (
-    <p>
-      <strong>{label}:</strong> {value}
-    </p>
+    <div className="metric">
+      <strong>{label}</strong>
+      <p>{value}</p>
+    </div>
   );
 }
 

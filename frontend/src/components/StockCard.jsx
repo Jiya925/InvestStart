@@ -1,4 +1,5 @@
 import Metric from "./Metric";
+import StockChart from "./StockChart";
 
 function StockCard({ stock }) {
   return (
@@ -49,6 +50,11 @@ function StockCard({ stock }) {
             ? `${(stock.dividend_yield * 100).toFixed(2)}%`
             : "N/A"
         }
+      />
+
+      <StockChart
+        dates={stock.dates}
+        prices={stock.prices}
       />
     </div>
   );
