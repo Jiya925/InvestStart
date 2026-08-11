@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from stock_data import get_stock_data
-from optimizer import optimize_portfolio
+from optimizer import optimize_portfolio, backtest_portfolio
 
 app = FastAPI()
 app.add_middleware(
@@ -51,3 +51,42 @@ def optimize(
         risk_tolerance,
         time_horizon
     )
+
+@app.get("/backtest")
+def backtest(
+    risk_tolerance: str,
+    time_horizon: int,
+    amount: float = 10000
+):
+
+    result = optimize_portfolio(
+        risk_tolerance,
+        time_horizon
+    )
+
+    portfolio = result["portfolio"]
+
+    weights = [
+        portfolio.get(ticker, 0) / 100
+        for ticker in [
+            "SPY",
+            "QQQ",
+            "VTI",
+            "VXUS",
+            "BND"
+        ]
+    ]
+
+    history = backtest_portfolio(
+        weights,
+        amount
+    )
+
+    return {
+        "portfolio": result["portfolio"],
+        "expected_return": result["expected_return"],
+        "volatility": result["volatility"],
+        "sharpe_ratio": result["sharpe_ratio"],
+        "frontier": result["frontier"],
+        "history": history
+    }

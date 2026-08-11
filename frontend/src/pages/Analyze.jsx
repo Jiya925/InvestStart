@@ -1,4 +1,6 @@
 import { useState } from "react";
+import EfficientFrontier from "../components/EfficientFrontier";
+import BacktestChart from "../components/BacktestChart";
 
 function Analyze() {
   const [amount, setAmount] = useState(10000);
@@ -10,51 +12,58 @@ function Analyze() {
   const [error, setError] = useState(null);
 
   async function generatePortfolio() {
+
     setLoading(true);
     setError(null);
 
     try {
-      // Convert our frontend risk labels
-      // into the values our Python backend expects.
-      const riskMap = {
-        Low: "conservative",
-        Medium: "moderate",
-        High: "aggressive",
-      };
-
-      const backendRisk = riskMap[risk];
 
       const response = await fetch(
-        `http://127.0.0.1:8000/optimize?risk_tolerance=${backendRisk}&time_horizon=${years}`
+        `http://127.0.0.1:8000/backtest?risk_tolerance=${risk.toLowerCase()}&time_horizon=${years}&amount=${amount}`
       );
 
       if (!response.ok) {
-        throw new Error("Failed to generate portfolio.");
+        throw new Error("Failed to generate portfolio");
       }
 
       const data = await response.json();
 
-      // Convert backend portfolio object into
-      // the format our React UI already expects.
-      const recommendation = Object.entries(data.portfolio).map(
-        ([ticker, percentage]) => ({
-          ticker,
-          percentage,
-        })
-      );
+      const recommendation = Object.entries(
+        data.portfolio
+      ).map(([ticker, percentage]) => ({
+        ticker,
+        percentage,
+      }));
 
       setPortfolio({
         investments: recommendation,
+
         expectedReturn: data.expected_return,
+
         volatility: data.volatility,
+
         sharpeRatio: data.sharpe_ratio,
+
+        frontier: data.frontier,
+
+        history: data.history,
       });
 
-    } catch (err) {
-      console.error(err);
-      setError("Something went wrong. Make sure the backend is running.");
+    } catch (error) {
+
+      console.error(
+        "Error generating portfolio:",
+        error
+      );
+
+      setError(
+        "Something went wrong while analyzing your portfolio."
+      );
+
     } finally {
+
       setLoading(false);
+
     }
   }
 
@@ -115,66 +124,81 @@ function Analyze() {
       )}
 
       {portfolio && (
-        <div className="portfolio-card">
+        <>
+          <div className="portfolio-card">
 
-          <h2>Your Recommended Portfolio</h2>
+            <h2>Your Recommended Portfolio</h2>
 
-          <p>
-            Based on ${Number(amount).toLocaleString()} invested for{" "}
-            {years} years with {risk.toLowerCase()} risk tolerance.
-          </p>
+            <p>
+              Based on ${Number(amount).toLocaleString()} invested for{" "}
+              {years} years with {risk.toLowerCase()} risk tolerance.
+            </p>
 
-          <div className="portfolio-list">
+            <div className="portfolio-list">
 
-            {portfolio.investments.map((investment) => {
-              const dollarAmount =
-                Number(amount) * (investment.percentage / 100);
+              {portfolio.investments.map((investment) => {
+                const dollarAmount =
+                  Number(amount) * (investment.percentage / 100);
 
-              return (
-                <div
-                  className="portfolio-item"
-                  key={investment.ticker}
-                >
-                  <div>
-                    <strong>{investment.ticker}</strong>
-                    <span>{investment.percentage}%</span>
+                return (
+                  <div
+                    className="portfolio-item"
+                    key={investment.ticker}
+                  >
+                    <div>
+                      <strong>{investment.ticker}</strong>
+                      <span>{investment.percentage}%</span>
+                    </div>
+
+                    <strong>
+                      ${dollarAmount.toLocaleString()}
+                    </strong>
                   </div>
+                );
+              })}
 
-                  <strong>
-                    ${dollarAmount.toLocaleString()}
-                  </strong>
-                </div>
-              );
-            })}
-
-          </div>
-
-          <div className="portfolio-metrics">
-
-            <div>
-              <span>Historical Annual Return</span>
-              <strong>
-                {portfolio.expectedReturn}%
-              </strong>
             </div>
 
-            <div>
-              <span>Historical Volatility</span>
-              <strong>
-                {portfolio.volatility}%
-              </strong>
-            </div>
+            <div className="portfolio-metrics">
 
-            <div>
-              <span>Sharpe Ratio</span>
-              <strong>
-                {portfolio.sharpeRatio}
-              </strong>
+              <div>
+                <span>Historical Annual Return</span>
+                <strong>
+                  {portfolio.expectedReturn}%
+                </strong>
+              </div>
+
+              <div>
+                <span>Historical Volatility</span>
+                <strong>
+                  {portfolio.volatility}%
+                </strong>
+              </div>
+
+              <div>
+                <span>Sharpe Ratio</span>
+                <strong>
+                  {portfolio.sharpeRatio}
+                </strong>
+              </div>
+
             </div>
 
           </div>
 
-        </div>
+          <EfficientFrontier
+            portfolios={portfolio.frontier}
+            recommended={{
+              return: portfolio.expectedReturn,
+              volatility: portfolio.volatility,
+            }}
+          />
+
+          <BacktestChart
+            history={portfolio.history}
+          />
+
+        </>
       )}
     </div>
   );

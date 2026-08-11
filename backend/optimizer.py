@@ -28,7 +28,7 @@ def get_historical_prices():
 def calculate_statistics(prices):
     """
     Calculate historical annualized returns
-    and the covariance matrix.
+    and covariance matrix.
     """
 
     daily_returns = prices.pct_change().dropna()
@@ -42,8 +42,7 @@ def calculate_statistics(prices):
 
 def calculate_portfolio(weights, annual_returns, covariance):
     """
-    Calculate the expected return and volatility
-    of a portfolio.
+    Calculate expected annual return and volatility.
     """
 
     portfolio_return = np.dot(
@@ -62,6 +61,72 @@ def calculate_portfolio(weights, annual_returns, covariance):
 
     return portfolio_return, portfolio_volatility
 
+def backtest_portfolio(weights, start_amount=10000):
+    """
+    Simulate how a portfolio would have performed
+    historically using the same weights.
+    """
+
+    prices = get_historical_prices()
+
+    # Calculate daily percentage changes
+    daily_returns = prices.pct_change().dropna()
+
+    # Calculate the portfolio's daily return
+    portfolio_daily_returns = daily_returns.dot(weights)
+
+    # Grow the initial investment over time
+    portfolio_value = (
+        1 + portfolio_daily_returns
+    ).cumprod() * start_amount
+
+    # Convert dates and values into a format
+    # that can be sent to the React frontend
+    history = []
+
+    for date, value in portfolio_value.items():
+
+        history.append({
+            "date": date.strftime("%Y-%m-%d"),
+            "value": round(float(value), 2)
+        })
+
+    return history
+
+def generate_valid_weights(risk_tolerance):
+    """
+    Generate a random portfolio that follows
+    InvestStart's diversification constraints.
+    """
+
+    while True:
+
+        weights = np.random.random(len(ASSETS))
+
+        weights = weights / np.sum(weights)
+
+        portfolio = dict(zip(ASSETS, weights))
+
+        # No asset can exceed 50%
+        if max(weights) > 0.50:
+            continue
+
+        # At least 5% international exposure
+        if portfolio["VXUS"] < 0.05:
+            continue
+
+        # Conservative portfolios need at least 15% bonds
+        if risk_tolerance == "conservative":
+            if portfolio["BND"] < 0.15:
+                continue
+
+        # Moderate portfolios need at least 5% bonds
+        if risk_tolerance == "moderate":
+            if portfolio["BND"] < 0.05:
+                continue
+
+        return weights
+
 
 def optimize_portfolio(
     risk_tolerance,
@@ -69,8 +134,11 @@ def optimize_portfolio(
     num_portfolios=5000
 ):
     """
-    Generate thousands of possible portfolios and
-    choose one based on risk tolerance and investment horizon.
+    Generate thousands of valid portfolios,
+    evaluate them, and select the best one.
+
+    Also returns all portfolios so the frontend
+    can build the Efficient Frontier visualization.
     """
 
     prices = get_historical_prices()
@@ -81,11 +149,9 @@ def optimize_portfolio(
 
     for _ in range(num_portfolios):
 
-        # Generate random weights
-        weights = np.random.random(len(ASSETS))
-
-        # Make weights add up to 100%
-        weights = weights / np.sum(weights)
+        weights = generate_valid_weights(
+            risk_tolerance
+        )
 
         portfolio_return, portfolio_volatility = (
             calculate_portfolio(
@@ -95,7 +161,6 @@ def optimize_portfolio(
             )
         )
 
-        # Avoid division by zero
         if portfolio_volatility == 0:
             continue
 
@@ -112,63 +177,100 @@ def optimize_portfolio(
 
     results_df = pd.DataFrame(results)
 
-    # Risk tolerance
+    # ---------------------------------------------
+    # Calculate score based on risk tolerance
+    # ---------------------------------------------
 
     if risk_tolerance == "conservative":
 
-        # Conservative investors strongly prioritize
-        # lower volatility.
         risk_weight = 2.0
-
-        results_df["score"] = (
-            results_df["return"]
-            - risk_weight * results_df["volatility"]
-        )
 
     elif risk_tolerance == "aggressive":
 
-        # Aggressive investors prioritize return more.
         risk_weight = 0.25
-
-        results_df["score"] = (
-            results_df["return"]
-            - risk_weight * results_df["volatility"]
-        )
 
     else:
 
-        # Moderate investors balance return and risk.
         risk_weight = 0.75
 
-        results_df["score"] = (
-            results_df["return"]
-            - risk_weight * results_df["volatility"]
-        )
+    results_df["score"] = (
+        results_df["return"]
+        - risk_weight * results_df["volatility"]
+    )
 
-    # Time horizon adjustment
+    # ---------------------------------------------
+    # Adjust score based on time horizon
+    # ---------------------------------------------
 
     if time_horizon <= 5:
 
-        # Shorter horizons should favor lower volatility.
         results_df["score"] -= (
             0.50 * results_df["volatility"]
         )
 
     elif time_horizon >= 20:
 
-        # Longer horizons can tolerate more volatility
-        # in exchange for higher expected returns.
         results_df["score"] += (
             0.20 * results_df["return"]
         )
 
-    # Select the highest-scoring portfolio
+    # ---------------------------------------------
+    # Find the actual Efficient Frontier
+    # ---------------------------------------------
 
-    best_index = results_df["score"].idxmax()
+    # Sort portfolios from lowest risk to highest risk.
+    sorted_results = results_df.sort_values(
+        by="volatility"
+    )
 
-    best = results_df.loc[best_index]
+    frontier = []
 
+    highest_return_so_far = -np.inf
+
+    frontier_indices = []
+
+    for index, row in sorted_results.iterrows():
+
+        current_return = float(row["return"])
+        current_volatility = float(row["volatility"])
+
+        # A portfolio is efficient if it provides
+        # a higher return than every portfolio
+        # with less risk.
+        if current_return > highest_return_so_far:
+
+            frontier_indices.append(index)
+
+            frontier.append({
+                "return": round(
+                    current_return * 100,
+                    2
+                ),
+                "volatility": round(
+                    current_volatility * 100,
+                    2
+                )
+            })
+
+            highest_return_so_far = current_return
+
+    # ---------------------------------------------
+    # Choose the recommended portfolio
+    # from the Efficient Frontier
+    # ---------------------------------------------
+
+    frontier_results = results_df.loc[
+        frontier_indices
+    ]
+
+    best_index = frontier_results["score"].idxmax()
+
+    best = frontier_results.loc[best_index]
+
+    # ---------------------------------------------
     # Convert weights into percentages
+    # ---------------------------------------------
+
     portfolio = {}
 
     for ticker, weight in zip(
@@ -180,18 +282,27 @@ def optimize_portfolio(
             2
         )
 
+    # ---------------------------------------------
+    # Return the recommendation and frontier
+    # ---------------------------------------------
+
     return {
         "portfolio": portfolio,
+
         "expected_return": round(
             float(best["return"]) * 100,
             2
         ),
+
         "volatility": round(
             float(best["volatility"]) * 100,
             2
         ),
+
         "sharpe_ratio": round(
             float(best["sharpe"]),
             2
-        )
+        ),
+
+        "frontier": frontier
     }
