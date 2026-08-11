@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from stock_data import get_stock_data
+from optimizer import optimize_portfolio
 
 app = FastAPI()
 app.add_middleware(
@@ -40,3 +41,13 @@ def stock(ticker: str):
         "dates": dates,
         "prices": prices
     }
+
+@app.get("/optimize")
+def optimize(
+    risk_tolerance: str = "moderate",
+    time_horizon: int = 10
+):
+    return optimize_portfolio(
+        risk_tolerance,
+        time_horizon
+    )
