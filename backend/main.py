@@ -90,3 +90,27 @@ def backtest(
         "frontier": result["frontier"],
         "history": history
     }
+
+@app.get("/practice/prices")
+def practice_prices():
+
+    tickers = ["SPY", "QQQ", "VTI", "VXUS", "BND"]
+
+    prices = {}
+
+    for ticker in tickers:
+
+        data = get_stock_data(ticker)
+
+        history = data["history"]
+
+        latest_price = float(
+            history["Close"].iloc[-1]
+        )
+
+        prices[ticker] = {
+            "name": data["name"],
+            "price": latest_price
+        }
+
+    return prices
