@@ -1,35 +1,21 @@
-import { useState } from "react";
-import "./App.css";
-import SearchBar from "./components/SearchBar";
-import StockCard from "./components/StockCard";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Learn from "./pages/Learn";
+import Analyze from "./pages/Analyze";
+import Practice from "./pages/Practice";
+import Navbar from "./components/Navbar";
 
 function App() {
-  const [ticker, setTicker] = useState("");
-  const [stock, setStock] = useState(null);
-
-  async function searchStock() {
-    const response = await fetch(
-      `http://127.0.0.1:8000/stock/${ticker}`
-    );
-
-    const data = await response.json();
-
-    setStock(data);
-  }
-
   return (
-    <div className="container">
-      <h1>InvestStart</h1>
+    <BrowserRouter>
+      <Navbar />
 
-      <SearchBar
-        ticker={ticker}
-        setTicker={setTicker}
-        searchStock={searchStock}
-      />
-
-
-      {stock && <StockCard stock={stock} />}
-    </div>
+      <Routes>
+        <Route path="/" element={<Learn />} />
+        <Route path="/analyze" element={<Analyze />} />
+        <Route path="/practice" element={<Practice />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
