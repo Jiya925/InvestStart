@@ -119,3 +119,88 @@ strong {
 .nav-links a:hover {
   color: #2563eb;
 }
+
+.analyze-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.page-description {
+  color: #6b7280;
+  margin-bottom: 30px;
+}
+
+.analyze-form {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.analyze-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  text-align: left;
+  font-weight: 600;
+}
+
+.analyze-form input,
+.analyze-form select {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.analyze-form button {
+  margin-top: 10px;
+}
+
+.portfolio-card {
+  margin-top: 30px;
+  padding: 30px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+
+  text-align: left;
+}
+
+.portfolio-card h2 {
+  margin-top: 0;
+}
+
+.portfolio-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.portfolio-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 15px;
+  background: #f8f9fc;
+  border-radius: 8px;
+}
+
+.portfolio-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.portfolio-item span {
+  color: #6b7280;
+  font-size: 14px;
+}
