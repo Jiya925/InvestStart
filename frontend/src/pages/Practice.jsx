@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import PortfolioChart from "../components/PortfolioChart";
 
 const STARTING_CASH = 10000;
 
@@ -6,6 +7,11 @@ const ASSETS = ["SPY", "QQQ", "VTI", "VXUS", "BND"];
 
 function Practice() {
   const [prices, setPrices] = useState({});
+
+  const [scenario, setScenario] = useState("normal");
+  const [simulation, setSimulation] = useState(null);
+  const [dayIndex, setDayIndex] = useState(0);
+
   const [cash, setCash] = useState(STARTING_CASH);
 
   const [holdings, setHoldings] = useState({
@@ -31,50 +37,63 @@ function Practice() {
     },
   });
 
+  const [portfolioHistory, setPortfolioHistory] = useState([
+  {
+    date: "Start",
+    value: STARTING_CASH,
+  },
+]);
+
   const [selectedTicker, setSelectedTicker] = useState("SPY");
   const [shares, setShares] = useState(1);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  async function fetchPrices() {
-    setLoading(true);
-    setError(null);
+  async function loadScenario(selectedScenario) {
+  setLoading(true);
+  setError(null);
 
-    try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/practice/prices"
-      );
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/practice/scenario/${selectedScenario}`
+    );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch prices");
-      }
-
-      const data = await response.json();
-
-      setPrices(data);
-    } catch (error) {
-      console.error(error);
-
-      setError(
-        "Unable to load current market prices."
-      );
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      throw new Error("Failed to load scenario");
     }
+
+    const data = await response.json();
+
+    setSimulation(data);
+    setDayIndex(0);
+
+    if (data.days.length > 0) {
+      setPrices(
+        Object.fromEntries(
+          ASSETS.map((ticker) => [
+            ticker,
+            {
+              price: data.days[0][ticker],
+            },
+          ])
+        )
+      );
+    }
+  } catch (error) {
+    console.error(error);
+
+    setError(
+      "Unable to load the historical scenario."
+    );
+  } finally {
+    setLoading(false);
   }
+}
 
   useEffect(() => {
-  fetchPrices();
-
-  const interval = setInterval(() => {
-    fetchPrices();
-  }, 30000);
-
-  return () => {
-    clearInterval(interval);
-  };
-}, []);
+    loadScenario("normal");
+  }, []);
 
   const portfolioValue = useMemo(() => {
     return ASSETS.reduce((total, ticker) => {
@@ -192,6 +211,57 @@ function Practice() {
     setError(null);
   }
 
+  function nextDay() {
+    if (!simulation) {
+      return;
+    }
+
+    if (dayIndex >= simulation.days.length - 1) {
+      setError("You have reached the end of this scenario.");
+      return;
+    }
+
+    const nextIndex = dayIndex + 1;
+
+    const nextDayPrices = simulation.days[nextIndex];
+
+    setDayIndex(nextIndex);
+
+    setPrices(
+      Object.fromEntries(
+        ASSETS.map((ticker) => [
+          ticker,
+          {
+            price: nextDayPrices[ticker],
+          },
+        ])
+      )
+    );
+
+    // Calculate portfolio value using the new day's prices
+    const investmentsValue = ASSETS.reduce(
+      (total, ticker) => {
+        const price = nextDayPrices[ticker] || 0;
+        const quantity = holdings[ticker]?.shares || 0;
+
+        return total + price * quantity;
+      },
+      0
+    );
+
+    const newTotalValue = cash + investmentsValue;
+
+    setPortfolioHistory((currentHistory) => [
+      ...currentHistory,
+      {
+        date: nextDayPrices.date,
+        value: newTotalValue,
+      },
+    ]);
+
+    setError(null);
+  }
+
   return (
     <div className="practice-page">
 
@@ -201,6 +271,72 @@ function Practice() {
         Practice investing with $10,000 of virtual money.
         Buy and sell investments without risking real money.
       </p>
+
+      <div className="scenario-selector">
+
+        <label>
+          Historical Scenario
+
+          <select
+            value={scenario}
+            onChange={(e) => {
+              const selectedScenario = e.target.value;
+
+              setScenario(selectedScenario);
+
+              // Reset the simulator
+              setCash(STARTING_CASH);
+              setPortfolioHistory([
+                {
+                  date: "Start",
+                  value: STARTING_CASH,
+                },
+              ]);
+
+              setHoldings({
+                SPY: { shares: 0, cost: 0 },
+                QQQ: { shares: 0, cost: 0 },
+                VTI: { shares: 0, cost: 0 },
+                VXUS: { shares: 0, cost: 0 },
+                BND: { shares: 0, cost: 0 },
+              });
+
+              loadScenario(selectedScenario);
+            }}
+          >
+
+            <option value="normal">
+              Normal Market
+            </option>
+
+            <option value="covid">
+              COVID Crash
+            </option>
+
+            <option value="tech">
+              Tech Crash
+            </option>
+
+            <option value="inflation">
+              Inflation Period
+            </option>
+
+          </select>
+        </label>
+
+      </div>
+
+      {simulation && simulation.days.length > 0 && (
+        <div className="simulation-date">
+
+          <span>Simulation Date</span>
+
+          <strong>
+            {simulation.days[dayIndex].date}
+          </strong>
+
+        </div>
+      )}
 
       {loading && (
         <p>Loading current market prices...</p>
@@ -355,13 +491,17 @@ function Practice() {
 
 
             <button
-              className="refresh-button"
-              onClick={fetchPrices}
+              className="next-day-button"
+              onClick={nextDay}
             >
-              Refresh Prices
+              Next Day →
             </button>
 
           </div>
+
+          <PortfolioChart
+            history={portfolioHistory}
+          />
 
 
           <div className="holdings-card">

@@ -1,3 +1,4 @@
+import yfinance as yf
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from stock_data import get_stock_data
@@ -114,3 +115,74 @@ def practice_prices():
         }
 
     return prices
+
+@app.get("/practice/scenario/{scenario}")
+def practice_scenario(scenario: str):
+
+    scenarios = {
+        "normal": {
+            "start": "2019-01-02",
+            "end": "2019-06-30"
+        },
+
+        "covid": {
+            "start": "2020-01-02",
+            "end": "2020-06-30"
+        },
+
+        "tech": {
+            "start": "2022-01-03",
+            "end": "2022-06-30"
+        },
+
+        "inflation": {
+            "start": "2022-01-03",
+            "end": "2022-12-30"
+        }
+    }
+
+    if scenario not in scenarios:
+        return {
+            "error": "Unknown scenario"
+        }
+
+    dates = scenarios[scenario]
+
+    assets = [
+        "SPY",
+        "QQQ",
+        "VTI",
+        "VXUS",
+        "BND"
+    ]
+
+    data = yf.download(
+        assets,
+        start=dates["start"],
+        end=dates["end"],
+        auto_adjust=True,
+        progress=False
+    )
+
+    prices = data["Close"].dropna()
+
+    result = []
+
+    for date, row in prices.iterrows():
+
+        day = {
+            "date": date.strftime("%Y-%m-%d")
+        }
+
+        for ticker in assets:
+            day[ticker] = round(
+                float(row[ticker]),
+                2
+            )
+
+        result.append(day)
+
+    return {
+        "scenario": scenario,
+        "days": result
+    }
